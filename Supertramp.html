@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+		<meta charset="utf-8">
+		<!-- The title is like "find your way out", but… walking! -->
+		<!-- It's a navigator for people who likes to walk around, just like Alexander Supertramp and me. -->
+		<title>SUPERTRAMP - walk your way out!</title>
+		<style type="text/css">
+			/* Class for the address fields. */
+			.input{
+			width: 180px;
+			}
+			/* Class for the buttons. */
+			.butt{
+			float: right;
+			width: 45px;
+			}
+			/* Class for the GPS coordinates displayer. */
+			.GPS{
+			color: grey;
+			font: 10px Courier;
+			}
+			html, body,
+			/* The map is large, very large! */
+			#mapView {
+				height: 100%;
+				margin: 0px;
+				padding: 0px
+			}
+			/* Simulating a Google panel by using the same font and shadow of other Google elements on the map. */
+			#panel {
+			position: fixed;
+			top: 5px;
+			left: 50%;
+			margin-left: -250px;
+			height:45px; width:500px;
+			z-index: 5;
+			background-color: #fff;
+			padding: 5px;
+			border: 1px solid #999;
+			font: 12px Helvetica;
+			color: #ff6600;
+			-moz-box-shadow: 0px 1px 2px #bbb;
+			-webkit-box-shadow: 0px 1px 2px #bbb;
+			box-shadow: 0px 1px 2px #bbb;
+			}
+		</style>
+
+		<!-- The useful API of Google Maps, using secure connection. -->
+		<!-- VERY IMPORTANT NOTE: I'm using my API_KEY: please do not copy it, man! -->
+		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+
+		<!-- Here's the JavaScript code. -->
+		<script>
+			// The variables:
+			var directionsDisplay; var directionsService = new google.maps.DirectionsService(); // these are for the directions
+			var map; // the map!
+			var geocoder; // this is the geocoder for the GPS coordinates
+			var from; var to; // these are our address/city strings
+			var fromGeo; var toGeo; // these are the GPS coordinates
+
+			// The map is initialized after the page has been loaded.
+			function initialize() {
+				directionsDisplay = new google.maps.DirectionsRenderer(); // draws the directions
+				// The view is set on Emilia Romagna.
+				var emilia_romagna = new google.maps.LatLng(44.560033, 10.852523);
+				var mapOptions = {
+					zoom:9,
+					mapTypeId: google.maps.MapTypeId.ROADMAP,
+					center: emilia_romagna
+				}
+				map = new google.maps.Map(document.getElementById('mapView'), mapOptions);
+				directionsDisplay.setMap(map); // binds the renderer to the map
+				geocoder = new google.maps.Geocoder(); // finds out the coordinates
+				set_focus_from(); // our user-friendly function (see below)
+			}
+
+			// This function finds out the GPS coordinates of an address
+			function calcGeoLocation() {
+				var fieldFrom = document.getElementById("fromGeo"); // gets the div to write the coordinates in
+				var fieldTo = document.getElementById("toGeo");  // gets the div to write the coordinates in
+				from=document.getElementById("from").value; // gets the "from" address
+				to=document.getElementById("to").value; // gets the "to" address
+				// Let's use the geocode for the "from" field!
+				geocoder.geocode( { 'address': from}, function(results, status) {
+					if (status == google.maps.GeocoderStatus.OK) {
+						fromGeo=results[0].geometry.location;
+						// removes the previous coordinates (if existing), then writes the new ones
+						while(fieldFrom.childNodes.length >= 1) {
+							fieldFrom.removeChild(fieldFrom.firstChild);
+						}
+						fieldFrom.appendChild(fieldFrom.ownerDocument.createTextNode(fromGeo));
+					}
+					else {
+					alert("Geocode API was not successful for the following reason: " + status);
+					}
+				});
+				// And now, let's use the geocode for the "to" field!
+				geocoder.geocode( { 'address': to}, function(results, status) {
+					if (status == google.maps.GeocoderStatus.OK) {
+						toGeo=results[0].geometry.location;
+						// removes the previous coordinates (if existing), then writes the new ones
+						while(fieldTo.childNodes.length >= 1) {
+							fieldTo.removeChild(fieldTo.firstChild);
+						}
+  						fieldTo.appendChild(fieldTo.ownerDocument.createTextNode(toGeo));
+    				}
+    				else {
+						alert("Geocode API was not successful for the following reason: " + status);
+					}
+				});
+			}
+
+			// This function calls the previous one, and finds out the shortest rout (because we want to WALK!)
+			function calcRoute() {
+				calcGeoLocation();
+				var request = {
+					origin:from,
+					destination:to,
+					travelMode: google.maps.DirectionsTravelMode.WALKING // yeah, that's it: walking!
+				};
+				directionsService.route(request, function(response, status) {
+					if (status == google.maps.DirectionsStatus.OK) {
+						directionsDisplay.setDirections(response);
+					}
+					else {
+					alert("Directions API was not successful for the following reason: " + status);
+					}
+				});
+				set_focus_from(); // our user-friendly function (see below)
+			}
+
+			// This is an extra, if you want to come back: switches the values of the two fields, then calculates the route back.
+			function back() {
+				var from2=document.getElementById("from").value;
+				var to2=document.getElementById("to").value;
+				var temp=to2; to2=from2; from2=temp; // <-- The good old temp variable!
+				document.getElementById("from").value=from2;
+				document.getElementById("to").value=to2;
+				calcRoute();
+			}
+			
+			// This is an extra, to make the page more user-friendly: the buttons are disabled if the fields are empty.
+			function buttons() {
+				if ((document.getElementById("from").value!="")&&(document.getElementById("to").value!="")) {
+					document.getElementById("route").disabled=false;
+					document.getElementById("back").disabled=false;
+					}
+				else {
+					document.getElementById("route").disabled=true;
+					document.getElementById("back").disabled=true;				
+				}
+			}
+			
+			// This is an extra, to make the page more user-friendly: sets focus on the first field we want to write in.
+			// It means, the user does not need to click into the field in order to write.
+			function set_focus_from() {
+				document.getElementById("from").focus();
+			}
+
+			// This is an extra, to make the page more user-friendly: it works also when you press the Enter key!
+			document.onkeydown = function() {
+				if ((event.keyCode == 13)&&(document.getElementById("from").value!="")&&(document.getElementById("to").value!="")) {
+					calcRoute();
+				}
+			}
+
+			// Loads the map after the page has been loaded.
+			google.maps.event.addDomListener(window, 'load', initialize);
+    	</script>
+	</head>
+  
+	<body>
+		<!-- The control panel. -->
+		<div id="panel">
+			<div>
+			<b>from: </b>
+			<input id="from" type="text" value="" onKeyUp="buttons()" class="input">
+			<b>to: </b>
+			<input id="to" type="text" value="" onKeyUp="buttons()" class="input">
+			<input type="button" value="route" id="route" onClick="calcRoute()" class="butt" disabled>
+			</div>
+			<div id="second_row">
+			GPS:
+			<span id="fromGeo" class="GPS">(-,-)</span>
+			>
+			<span id="toGeo" class="GPS">(-,-)</span>
+			<input type="button" value="back" id="back" onClick="back()" class="butt" disabled>
+			</div>
+		</div>
+		<!-- The map. -->
+		<div id="mapView"></div>
+	</body>
+</html>
+<!-- FABIO MICHELINI, for my first job interview -->
